@@ -1,4 +1,5 @@
-#SpreadSheet2Html
+# SpreadSheet2Html
+
 This is a small utility to convert a table done in a spreadsheet into an html file.
 Feel free to use, share or modify.
 The utility moves some style attributes from the spreadsheet to the CSS, but it is still missing important things like the color and style of the borders. Is anyone encouraged?
