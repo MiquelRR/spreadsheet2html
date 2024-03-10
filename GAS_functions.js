@@ -1,10 +1,3 @@
-function NonOpen() {
-  Browser.msgBox("Mensaje", "olakase", Browser.Buttons.OK);
-  Utilities.sleep(100);
-  mostrarPanelLateral();
-  Browser.msgBox("Mensaje", "pepe", Browser.Buttons.OK);
-}
-
 function mostrarPanelLateral() {
   var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("HTML");
   var rhtml = hoja.getRange("A2");
@@ -19,17 +12,26 @@ function mostrarPanelLateral() {
   SpreadsheetApp.getActive().toast(
     "Ya està fet, si li dona la gana, t'ho mostrarà al panell lateral, tranqui que s'ho pren amb calma"
   );
-  //var cs = interpretaFulla().css
+
+  var htmlWithStyle =
+    "<html>\n  <head>\n  <style>\n" +
+    cs +
+    "    </style>\n  </head>\n    <body>\n   <table>" +
+    ht +
+    "    </table>\n   </body>\n</html>";
+  var hth = HtmlService.createHtmlOutput();
+  hth.setContent(htmlWithStyle);
+  hth.setTitle("Tabla Autogenerada");
+  hth.setWidth(1000);
+
+  SpreadsheetApp.getUi().showSidebar(hth);
   rhtml.setValue(toHTML(ht));
   hh.setValue(ht);
   rcss.setValue(cs);
   hoja.activate();
-
-  var html = HtmlService.createHtmlOutputFromFile("panell")
-    .setTitle("Panell lateral")
-    .setWidth(1000);
-  SpreadsheetApp.getUi().showSidebar(html);
-  //SpreadsheetApp.getActive().toast("Tienes el archivo completo pinchado el botón.");
+  SpreadsheetApp.getActive().toast(
+    "Pots accdeir a l'arxiu complet amb la icona HTML."
+  );
 }
 
 function generaHtml() {
@@ -56,6 +58,7 @@ function generaHtml() {
 }
 
 function toHTML(texte) {
+  //afig etiquetes html, head, body i table
   let resultat =
     '<!DOCTYPE html>\n<html>\n  <head>\n     <link rel="stylesheet" href="estils.css">\n  </head>\n  <body>\n    <table>\n    ';
   resultat += texte;
@@ -63,15 +66,17 @@ function toHTML(texte) {
   return resultat;
 }
 function toCSS(llista) {
+  //convetix la llista de valors en codi css
   var res = "/* estils.css */\n";
   var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("HTML");
   var adcss = hoja.getRange("D4");
   res += adcss.getValue() + "\n";
 
   llista.forEach((item) => {
-    descarrega(item, llista);
+    descarrega(item, llista); // elimina els valors repetits entre la clase i l'etiqueta pare
     res += item.eti + (item.clase ? "." + item.clase : "") + "{\n";
     if (item.color.length > 0) {
+      // afig la propietat en cas de que existiga
       res += "     background-color: " + item.color + ";\n";
     }
     if (item.fWeigth.length > 0) {
@@ -95,7 +100,8 @@ function toCSS(llista) {
 }
 
 function buida(f, c) {
-  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ORIGEN");
+  //retorna si esta buida la fila des de la pocició 2 fins la posició c
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var rango = hoja.getRange(f, 2, 1, c - 1);
   var valores = rango.getValues();
   var estaVacia = valores.every(function (fila) {
@@ -108,7 +114,7 @@ function buida(f, c) {
 
 function totaNegreta(f, c) {
   //retorna true si la fila f esta tota en negreta fins la columna c
-  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ORIGEN");
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var rango = hoja.getRange(f, 1, 1, c);
   var estils = rango.getFontWeights();
   var resulta = estils[0].every(function (estils) {
@@ -117,14 +123,14 @@ function totaNegreta(f, c) {
   return resulta;
 }
 function aplanaNomCSS(nombre) {
+  //extreu caràcters no val·lids a noms css
   if (nombre.length === 0) nombre = "sense_texte";
   // Utilizar una expresión regular para filtrar caracteres no admitidos
   return nombre.replace(/[^a-zA-Z0-9-_]/g, "x");
 }
 
 function getCSSBorder(range) {
-  //he desistit de importar vores
-  // Obtener los bordes de la celda
+  //ACI M'HE QUEDAT !! he desistit de importar vores UNUSED FUNCTION
   var borders = range.getBorder();
   var sal = "";
   // Obtener los valores de los bordes
@@ -150,23 +156,19 @@ function getCSSBorder(range) {
   }
   return sal;
 }
+
 function descarrega(element, cssdata) {
   // Elimina les propietats que ja estan en la etiqueta principal
-  //Logger.log("kase");
   if (element.clase.length > 0) {
     const etibase = cssdata.find(
+      // localitzem l'etiqueta sense clase
       (item) => item.eti === element.eti && item.clase == ""
     );
-
-    Logger.log(etibase.eti.length);
-
     if (etibase) {
-      Logger.log(etibase.clase.length);
-      //Logger.log("ola");
       for (const prop in element) {
         if (prop !== "clase" && prop !== "eti") {
           if (etibase[prop] === element[prop]) {
-            element[prop] = "";
+            element[prop] = ""; //buidem els atributs de valors coincidents
           }
         }
       }
@@ -175,10 +177,11 @@ function descarrega(element, cssdata) {
 }
 
 function agregaCss(cssdata, f, c, etiqueta) {
+  //
   const tamanyLletra = 10;
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ORIGEN");
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var range = sheet.getRange(f, c);
-  var nm = range.getValue();
+  var nm = range.getValue().toString();
   var nom = nm.split(" ")[0];
   nom = aplanaNomCSS(nom);
   if (/^\d/.test(nom)) {
@@ -211,45 +214,48 @@ function agregaCss(cssdata, f, c, etiqueta) {
   ) {
     // si l'etiqueta existeix
     if (igual) {
-      //Logger.log(igual);
       nom = igual.clase; // Si trobem un conjunt de caracteristiques iguals li asignem el mateix nom
     } else {
       var coincidencia = cssdata.some(function (objeto) {
         // comproba si ja tenim una parella etiqueta-clase igual
         return objeto.eti === etiqueta && objeto.clase === nom;
       });
-      nom += coincidencia ? "-" : "";
-      objecte.clase = nom; //afig - al nom si hi ha coincidència
-      //descarrega(objecte,cssdata);
+      nom += coincidencia ? "-" : ""; //afig - al nom si hi ha coincidència
+      objecte.clase = nom;
       cssdata.push(objecte);
     }
   } else {
-    //no existeix l'etiqueta  MODIFICAT
-    nom = ""; // AFEGIT
+    // si no existeix l'etiqueta, es crea sense nom de clase
+    nom = ""; //
     objecte.clase = nom;
     cssdata.push(objecte);
   }
   var tag = etiqueta;
-  tag += nom.length > 0 ? ' class="' + nom + '"' : "";
-  //Logger.log('f'+f+'c'+c+'-'+tag);
+  tag += nom.length > 0 ? ' class="' + nom + '"' : ""; //tag es: "eti class="nom" per a insertar al HTML
   return { cls: tag };
 }
-
+function volcaResultat() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("HTML");
+  var cssdata = sheet.getRange("B2").getValue();
+  var resultat = hoja.getRange("A220").getValue();
+  Logger.log("HOLA");
+  return [resultat, cssdata];
+}
 function interpretaFulla() {
   var tg;
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ORIGEN");
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var rangDades = sheet.getDataRange();
   var y2 = rangDades.getNumRows();
   var x2 = rangDades.getNumColumns();
   var y1 = 1,
-    x1 = 1;
+    x1 = 1; //posicio que determina el títol <caption>
   var range = sheet.getRange(x1, y1);
   var isBold = range.getFontWeight() == "bold";
   var value = range.getValue();
-  let resultat = "";
-  var cssdata = []; //llista
-  if (buida(1, x2)) {
-    //Títol
+  let resultat = ""; //string que retornará tot el HTML
+  var cssdata = []; //llista amb els valos trasmisibles al css
+  if (buida(y1, x2)) {
+    //Si a la fila no existeix mes que un teste en negreta serà el titol
     var tg = agregaCss(cssdata, 1, 1, "caption").cls;
     resultat +=
       " <" +
@@ -259,10 +265,10 @@ function interpretaFulla() {
       value +
       (isBold ? "</strong>" : "") +
       "</caption>\n";
-    y1 = 2;
+    y1 = 2; // la fila que determina th es ara la 2
   }
-  var posahead = totaNegreta(y1, x2);
-  var posafoot = totaNegreta(y2, x2);
+  var posahead = totaNegreta(y1, x2); //existix <thead>
+  var posafoot = totaNegreta(y2, x2); //existix <tfoot>
   for (var i = y1; i <= y2; i++) {
     if (posahead && i === y1) {
       tg = agregaCss(cssdata, y1, 1, "thead").cls;
@@ -279,7 +285,7 @@ function interpretaFulla() {
       var f = i + 1;
       isBold = range.getFontWeight() == "bold";
       value = range.getValue();
-      var thd = isBold ? "th" : "td";
+      var thd = isBold ? "th" : "td"; //determina si la casella es th o td
       if (!agrupada(i, j).esta) {
         //si no esta agrupada
         tg = agregaCss(cssdata, i, j, thd).cls;
@@ -308,7 +314,7 @@ function interpretaFulla() {
 }
 
 function agrupada(f, c) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ORIGEN");
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var r = sheet.getRange(f, c);
   var mergedRange = r.getMergedRanges();
   var esta = mergedRange.length == 1; //true si es una celda soldada con otras
@@ -319,12 +325,12 @@ function agrupada(f, c) {
     ultC = 0;
   if (esta) {
     inicial = mergedRange[0].getRow() == f && mergedRange[0].getColumn() == c;
-    //Logger.log(inicial+" "+f+"vs"+mergedRange[0].getRow()+"-"+c+"vs"+mergedRange[0].getColumn())
+    //Si del grup, esta es la casella inicial (dalt, esquerra)
     ultC = mergedRange[0].getLastColumn();
     ver = mergedRange[0].getHeight() > 1;
     hor = mergedRange[0].getWidth() > 1;
   }
-  var cadena = "";
+  var cadena = ""; //fabrica el colspan i rowspan amb les mesures del grup
   if (inicial) {
     cadena = hor ? ' colspan="' + mergedRange[0].getWidth() + '"' : "";
     cadena += ver ? ' rowspan="' + mergedRange[0].getHeight() + '"' : "";
